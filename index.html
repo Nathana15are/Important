@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Générateur BD Ultime - NTH</title>
+<style>
+body { margin:0; font-family: Arial, sans-serif; background:#f4f4f4; overflow-x:hidden; }
+nav { width:200px; background:#222; height:100vh; position:fixed; top:0; left:0; display:flex; flex-direction:column; z-index:1000; }
+nav a { color:#fff; padding:15px; text-decoration:none; border-bottom:1px solid #333; }
+nav a:hover { background:#333; }
+main { margin-left:200px; padding:20px; }
+button { padding:8px 12px; margin:5px; cursor:pointer; }
+input, select, textarea { padding:5px; margin:5px 0; width:100%; box-sizing:border-box; }
+canvas { border:1px solid #333; background:#fff; display:block; touch-action: none; }
+.bd-feed { max-width:600px; margin:0 auto; overflow-y:auto; height:80vh; scroll-snap-type:y mandatory; }
+.bd-item { background:#fff; margin-bottom:20px; padding:10px; border-radius:10px; box-shadow:0 0 5px rgba(0,0,0,0.2); scroll-snap-align:start; }
+.bd-item .actions { display:flex; justify-content:space-between; margin-top:10px; }
+.bd-item .actions button { flex:1; margin:0 2px; }
+#notifications { background:#fffae6; border:1px solid #ffcc00; padding:10px; margin-bottom:10px; display:none; position:fixed; top:10px; right:10px; z-index:1001; }
+#credits { font-size:0.9em; color:#555; margin-top:20px; }
+.selected { outline:2px dashed red; }
+</style>
+</head>
+<body>
+
+<nav>
+<a href="#" onclick="showPage('login')">Connexion / Inscription</a>
+<a href="#" onclick="showPage('createBD')">Créer BD</a>
+<a href="#" onclick="showPage('feed')">Parcourir BD</a>
+<a href="#" onclick="showPage('notificationsPage')">Notifications</a>
+<a href="#" onclick="showPage('postulate')">Postuler Créateur</a>
+<a href="#" onclick="showPage('credits')">Crédits</a>
+</nav>
+
+<main>
+<div id="notifications"></div>
+
+<div id="login" class="page">
+<h2>Connexion / Inscription</h2>
+<input type="text" id="pseudo" placeholder="Pseudo">
+<input type="text" id="telephone" placeholder="Numéro de téléphone">
+<input type="password" id="password" placeholder="Mot de passe">
+<button onclick="register()">S'inscrire</button>
+<button onclick="login()">Se connecter</button>
+</div>
+
+<div id="createBD" class="page" style="display:none;">
+<h2>Créer une BD</h2>
+<input type="text" id="bdTitle" placeholder="Titre de la BD">
+<textarea id="bdDescription" placeholder="Description"></textarea>
+<input type="number" id="bdAge" placeholder="Âge minimal">
+<input type="text" id="bdPaypal" placeholder="Lien PayPal (optionnel)">
+<canvas id="bdCanvas" width="500" height="400"></canvas>
+<div>
+<button onclick="addText()">Ajouter Texte</button>
+<button onclick="addBubble()">Ajouter Bulle</button>
+<button onclick="enableDraw()">Activer Crayon</button>
+<button onclick="clearCanvas()">Effacer Canevas</button>
+<button onclick="saveBD()">Sauvegarder BD</button>
+<button onclick="exportPNG()">Exporter PNG</button>
+<button onclick="exportPDF()">Exporter PDF</button>
+</div>
+</div>
+
+<div id="feed" class="page" style="display:none;">
+<h2>Parcourir BD</h2>
+<div class="bd-feed" id="bdFeed"></div>
+</div>
+
+<div id="notificationsPage" class="page" style="display:none;">
+<h2>Notifications</h2>
+<ul id="notifList"></ul>
+</div>
+
+<div id="postulate" class="page" style="display:none;">
+<h2>Postuler pour devenir Créateur</h2>
+<button onclick="postulate()">Postuler</button>
+</div>
+
+<div id="credits" class="page" style="display:none;">
+<h2>Crédits</h2>
+<p>&copy; NTH</p>
+<p>Créateur : NTH</p>
+<p>Téléphone : 07-66-74-85-15</p>
+</div>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+// ===== Variables =====
+let currentUser=null;
+let canvas=document.getElementById('bdCanvas');
+let ctx=canvas.getContext('2d');
+let elements=[];
+let drawing=false;
+let selected=null;
+let offsetX=0, offsetY=0;
+
+// ===== Navigation =====
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.style.display='none'); document.getElementById(id).style.display='block';}
+
+// ===== SheetDB API =====
+const apiURL='https://sheetdb.io/api/v1/ogb17g3w6o9i2';
+
+// ===== Auth =====
+async function register(){ const pseudo=document.getElementById('pseudo').value; const tel=document.getElementById('telephone').value; const pwd=document.getElementById('password').value; if(!pseudo||!tel||!pwd){alert('Remplissez tous les champs'); return;} await fetch(apiURL+'/Utilisateurs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pseudo:pseudo,telephone:tel,motdepasse:pwd,role:'utilisateur',notifications:'[]'})}); alert('Inscrit !');}
+async function login(){ const tel=document.getElementById('telephone').value; const pwd=document.getElementById('password').value; const res=await fetch(apiURL+'/Utilisateurs'); const users=await res.json(); const u=users.find(u=>u.telephone===tel && u.motdepasse===pwd); if(u){currentUser=u; alert('Connecté !'); showPage('feed'); loadFeed(); requestNotificationPermission();} else alert('Utilisateur non trouvé');}
+
+// ===== Canvas Interactif + Zoom/Rotation =====
+function drawCanvas(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  elements.forEach(el=>{
+    ctx.save();
+    ctx.translate(el.x,el.y);
+    ctx.rotate(el.rotation || 0);
+    ctx.scale(el.scale || 1, el.scale || 1);
+    if(el.type==='text'){ctx.fillStyle=el.color; ctx.font=(el.size||20)+'px '+(el.font||'Arial'); ctx.fillText(el.text,0,0);}
+    if(el.type==='bubble'){ctx.fillStyle=el.color; ctx.fillRect(-5,-20,(el.text.length*10),30); ctx.fillStyle='#000'; ctx.fillText(el.text,0,0);}
+    ctx.restore();
+  });
+}
+
+canvas.addEventListener('mousedown',e=>{
+  const x=e.offsetX, y=e.offsetY;
+  selected=elements.findLast(el=>{
+    const dx=x-el.x, dy=y-el.y;
+    return dx>=0 && dx<= (el.text.length*10)*(el.scale||1) && dy>=-20 && dy<=10;
+  });
+  if(selected){offsetX=x-selected.x; offsetY=y-selected.y;}
+  if(drawing){ctx.beginPath(); ctx.moveTo(x,y);}
+});
+
+canvas.addEventListener('mousemove',e=>{
+  const x=e.offsetX, y=e.offsetY;
+  if(selected){ selected.x=x-offsetX; selected.y=y-offsetY; drawCanvas(); }
+  if(drawing){ctx.lineTo(x,y); ctx.stroke();}
+});
+
+canvas.addEventListener('mouseup',e=>{ drawing=false; selected=null; ctx.closePath(); });
+
+// Touch events pour mobile
+canvas.addEventListener('touchstart', e => { if(e.touches.length==1){ const touch = e.touches[0]; canvas.dispatchEvent(new MouseEvent('mousedown',{offsetX:touch.clientX-canvas.offsetLeft,offsetY:touch.clientY-canvas.offsetTop})); }});
+canvas.addEventListener('touchmove', e => { if(e.touches.length==1){ const touch = e.touches[0]; canvas.dispatchEvent(new MouseEvent('mousemove',{offsetX:touch.clientX-canvas.offsetLeft,offsetY:touch.clientY-canvas.offsetTop})); } e.preventDefault();});
+canvas.addEventListener('touchend', e => { canvas.dispatchEvent(new MouseEvent('mouseup')); });
+
+function enableDraw(){ drawing=!drawing; alert(drawing?"Crayon activé":"Crayon désactivé"); }
+function clearCanvas(){ elements=[]; drawCanvas(); }
+function addText(){ let t=prompt("Texte:"); if(t){elements.push({type:'text',text:t,x:50,y:50,color:'#000',font:'Arial',size:20,rotation:0,scale:1}); drawCanvas();} }
+function addBubble(){ let t=prompt("Texte bulle:"); if(t){elements.push({type:'bubble',text:t,x:100,y:100,color:'#f0f0f0',font:'Arial',size:18,rotation:0,scale:1}); drawCanvas();} }
+
+// ===== Export =====
+function exportPNG(){ const link=document.createElement('a'); link.download='bd.png'; link.href=canvas.toDataURL(); link.click(); }
+function exportPDF(){ html2canvas(canvas).then(c=>{ const { jsPDF } = window.jspdf; const pdf = new jsPDF(); pdf.addImage(c.toDataURL(),'PNG',10,10,180,160); pdf.save('bd.pdf'); }); }
+
+// ===== Save BD =====
+async function saveBD(){ if(!currentUser){alert('Connectez-vous'); return;} const title=document.getElementById('bdTitle').value; const desc=document.getElementById('bdDescription').value; const age=document.getElementById('bdAge').value; const paypal=document.getElementById('bdPaypal').value; await fetch(apiURL+'/BD',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,description:desc,age,paypal,auteur:currentUser.pseudo,elements:JSON.stringify(elements)})}); alert('BD sauvegardée !'); notify("BD sauvegardée !"); loadFeed(); }
+
+// ===== Feed =====
+async function loadFeed(){ const res=await fetch(apiURL+'/BD'); const bds=await res.json(); const feed=document.getElementById('bdFeed'); feed.innerHTML=''; bds.forEach(bd=>{ const div=document.createElement('div'); div.className='bd-item'; div.innerHTML=`<h3>${bd.title}</h3><p>${bd.description}</p><p>Auteur: ${bd.auteur}</p><div class="actions"><button onclick="likeBD('${bd._id}')">👍</button><button onclick="commentBD('${bd._id}')">💬</button><button onclick="shareBD('${bd._id}')">⋯</button></div>`; feed.appendChild(div); }); }
+
+// ===== Actions =====
+async function likeBD(id){ await fetch(apiURL+'/Likes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bd_id:id,utilisateur:currentUser.pseudo})}); notify("Like ajouté !"); }
+async function commentBD(id){ let txt=prompt('Votre commentaire :'); if(txt){ await fetch(apiURL+'/Commentaires',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bd_id:id,utilisateur:currentUser.pseudo,texte:txt})}); notify("Commentaire ajouté !"); } }
+function shareBD(id){ prompt("Lien partageable:", `${location.href}#BD-${id}`); }
+
+// ===== Postulation =====
+async function postulate(){ await fetch(apiURL+'/Postulations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({utilisateur:currentUser.pseudo})}); notify("Postulation envoyée !"); }
+
+// ===== Notifications =====
+function notify(msg){ const n=document.getElementById('notifications'); n.innerText=msg; n.style.display='block'; setTimeout(()=>{n.style.display='none';},5000); }
+function requestNotificationPermission(){ if("Notification" in window){ Notification.requestPermission(); } }
+function pushNotification(msg){ if(Notification.permission==="granted"){ new Notification(msg); } }
+
+</script>
+</body>
+</html>
