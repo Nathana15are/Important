@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Force Brute Hollywood</title>
+<title>Estimation de Force Brute avec Complexité</title>
 <style>
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:black;font-family:Consolas,monospace;}
 canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;}
@@ -23,150 +23,100 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;}
 h1{margin:0;color:#0f0;text-shadow:0 0 10px #0f0,0 0 20px #00ff00;}
 label{display:block;margin-top:10px;font-size:14px;color:#88ff88;}
 input{width:100%;padding:10px;margin-top:6px;border-radius:10px;border:none;background:rgba(0,255,0,0.08);color:#0f0;font-size:16px;}
-button{padding:10px 16px;margin:6px;border:none;border-radius:12px;background:linear-gradient(45deg,#0f0,#00aa00);color:#001f20;font-weight:700;cursor:pointer;transition:.2s;}
-button:hover{filter:brightness(1.3);}
-button.ghost{background:transparent;border:1px solid rgba(0,255,0,0.3);}
-.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px;}
+#timer{margin-top:12px;font-size:14px;}
+#complexity{margin-top:6px;font-size:16px;font-weight:bold;}
 .progress{height:18px;background:rgba(0,255,0,0.1);border-radius:999px;margin-top:12px;overflow:hidden;}
-.progress>div{height:100%;width:0;background:linear-gradient(90deg,#0f0,#00ff00);box-shadow:0 0 15px #0f0;transition:width .05s linear;}
-#summary{font-size:13px;margin-top:8px;color:#88ff88;}
-#testedCodes{margin-top:12px;height:150px;width:100%;background:rgba(0,0,0,0.2);color:#0f0;border-radius:12px;padding:8px;overflow-y:scroll;font-size:12px;line-height:1.3;user-select:none;}
-#timer{margin-top:8px;color:#0f0;font-size:14px;}
+.progress>div{height:100%;width:0;background:linear-gradient(90deg,#0f0,#00ff00);box-shadow:0 0 15px #0f0;transition:width .1s linear;}
 </style>
 </head>
 <body>
 <canvas id="matrix"></canvas>
 <div class="glass">
-  <h1>⚡ Force Brute Hollywood ⚡</h1>
+  <h1>⏱ Estimation de Force Brute ⏱</h1>
   <label>Mot de passe</label>
-  <input id="password" type="text" value="abc">
-  <div class="controls">
-    <button id="startBtn">Lancer</button>
-    <button id="stopBtn" class="ghost" disabled>Arrêter</button>
-  </div>
+  <input id="password" type="text" placeholder="Tape ton mot de passe">
   <div class="progress"><div id="bar"></div></div>
-  <div id="summary">Clique sur Lancer pour commencer</div>
-  <div id="timer">Temps écoulé: 0:00</div>
-  <div id="testedCodes"></div>
+  <div id="timer">Temps estimé: --</div>
+  <div id="complexity">Complexité: --</div>
 </div>
-<audio id="beep" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="></audio>
 
 <script>
 const canvas=document.getElementById('matrix');
 const ctx=canvas.getContext('2d');
 let width=canvas.width=window.innerWidth;
 let height=canvas.height=window.innerHeight;
-
-const pwdEl=document.getElementById('password'),
-barEl=document.getElementById('bar'),
-summaryEl=document.getElementById('summary'),
-testedEl=document.getElementById('testedCodes'),
-timerEl=document.getElementById('timer'),
-startBtn=document.getElementById('startBtn'),
-stopBtn=document.getElementById('stopBtn'),
-beep=document.getElementById('beep');
-
-let simState={running:false,attempts:0n,found:false,gen:null,buffer:[],startTime:0};
-const alphabet='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 let fontSize=Math.min(20,width/50);
 let columns=Math.floor(width/fontSize);
 let drops=new Array(columns).fill(1);
-let flash=0;
 
-function formatTime(seconds){
-  const m=Math.floor(seconds/60);
-  const s=seconds%60;
-  return `${m}:${s.toString().padStart(2,'0')}`;
-}
+const pwdInput=document.getElementById('password');
+const timerEl=document.getElementById('timer');
+const barEl=document.getElementById('bar');
+const complexityEl=document.getElementById('complexity');
 
-function* infiniteBruteForce(chars){
-  let len=1;
-  while(true){
-    const idx=new Array(len).fill(0);
-    while(true){
-      yield idx.map(i=>chars[i]).join('');
-      let pos=len-1;
-      while(pos>=0){
-        idx[pos]++;
-        if(idx[pos]<chars.length) break;
-        idx[pos]=0; pos--;
-      }
-      if(pos<0) break;
+// Fonction estimation par caractère
+function estimateTime(pwd){
+    if(!pwd) return 0;
+    let totalCombos=1;
+    for(let ch of pwd){
+        if(/[a-z]/.test(ch)) totalCombos *=26;
+        else if(/[A-Z]/.test(ch)) totalCombos *=26;
+        else if(/[0-9]/.test(ch)) totalCombos *=10;
+        else totalCombos *=32;
     }
-    len++;
-  }
+    let seconds=totalCombos/1e8;
+    return seconds;
 }
 
-function updateTestedCodes(){
-  if(simState.buffer.length===0) return;
-  testedEl.innerHTML += simState.buffer.join('<br>')+'<br>';
-  testedEl.scrollTop = testedEl.scrollHeight;
-  simState.buffer=[];
+function formatTime(sec){
+    if(sec<60) return sec.toFixed(2)+' sec';
+    let m=Math.floor(sec/60);
+    let s=Math.floor(sec%60);
+    if(m<60) return m+' min '+s+' sec';
+    let h=Math.floor(m/60);
+    let min=m%60;
+    if(h<24) return h+' h '+min+' min';
+    let d=Math.floor(h/24);
+    h=h%24;
+    return d+' j '+h+' h '+min+' min';
 }
 
-function startSim(){
-  const pwd=pwdEl.value||"";
-  if(pwd.length===0){alert("Mot de passe vide");return;}
-  if(simState.running) return;
-
-  simState.running=true;
-  simState.attempts=0n;
-  simState.found=false;
-  simState.startTime=Date.now();
-  simState.gen=infiniteBruteForce(alphabet);
-  simState.buffer=[];
-  testedEl.innerHTML='';
-  startBtn.disabled=true;
-  stopBtn.disabled=false;
-
-  simState.timer=setInterval(()=>{
-    if(simState.found){clearInterval(simState.timer); startBtn.disabled=false; stopBtn.disabled=true; return;}
-    const elapsed=Math.floor((Date.now()-simState.startTime)/1000);
-    timerEl.textContent="Temps écoulé: "+formatTime(elapsed);
-
-    for(let i=0;i<500;i++){
-      const {value}=simState.gen.next();
-      simState.attempts+=1n;
-      simState.buffer.push(value);
-      if(value===pwd){
-        simState.found=true;
-        beep.currentTime=0; beep.play();
-        flash=20; // déclenche effet Hollywood
-        break;
-      }
-    }
-
-    updateTestedCodes();
-    barEl.style.width=(Number(simState.attempts)/100000*100).toFixed(2)+'%';
-    summaryEl.textContent=`Essais: ${simState.attempts.toString()}${simState.found?" ✅ Trouvé!":""}`;
-  },20);
+// Déterminer complexité
+function getComplexity(sec){
+    if(sec<10) return {text:'Faible',color:'red'};
+    if(sec<3600) return {text:'Moyen',color:'yellow'};
+    if(sec<86400*7) return {text:'Fort',color:'#88ff88'};
+    return {text:'Ultra',color:'#0f0'};
 }
 
-startBtn.addEventListener('click',startSim);
-stopBtn.addEventListener('click',()=>{
-  if(simState.timer) clearInterval(simState.timer);
-  simState.running=false;
-  startBtn.disabled=false;
-  stopBtn.disabled=true;
-  summaryEl.textContent+=" ⏹ Arrêt manuel";
+pwdInput.addEventListener('input',()=>{
+    const pwd=pwdInput.value;
+    const sec=estimateTime(pwd);
+    timerEl.textContent="Temps estimé: "+formatTime(sec);
+
+    // Barre indicative
+    barEl.style.width=Math.min(pwd.length*10,100)+'%';
+
+    // Complexité
+    const comp=getComplexity(sec);
+    complexityEl.textContent="Complexité: "+comp.text;
+    complexityEl.style.color=comp.color;
 });
 
+// Matrix background
+const alphabet='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 function drawMatrix(){
-  ctx.fillStyle=`rgba(0,${flash>0?255:0},0,0.05)`;
-  ctx.fillRect(0,0,width,height);
-
-  ctx.font=fontSize+"px monospace";
-  ctx.fillStyle="#0f0";
-  for(let i=0;i<drops.length;i++){
-    const text=alphabet[Math.floor(Math.random()*alphabet.length)];
-    ctx.fillText(text,i*fontSize,drops[i]*fontSize);
-    drops[i]++;
-    if(drops[i]*fontSize>height || Math.random()>0.97) drops[i]=0;
-  }
-
-  if(flash>0) flash--; // décrémente l'effet Hollywood
-
-  requestAnimationFrame(drawMatrix);
+    ctx.fillStyle="rgba(0,0,0,0.05)";
+    ctx.fillRect(0,0,width,height);
+    ctx.font=fontSize+"px monospace";
+    ctx.fillStyle="#0f0";
+    for(let i=0;i<drops.length;i++){
+        const text=alphabet[Math.floor(Math.random()*alphabet.length)];
+        ctx.fillText(text,i*fontSize,drops[i]*fontSize);
+        drops[i]++;
+        if(drops[i]*fontSize>height || Math.random()>0.97) drops[i]=0;
+    }
+    requestAnimationFrame(drawMatrix);
 }
 drawMatrix();
 
