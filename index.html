@@ -2,59 +2,114 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Ultimate Subway Surfer Mobile - Complet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subway Surfer Web Mobile</title>
 <style>
-body, html { margin:0; padding:0; overflow:hidden; touch-action:none; font-family:sans-serif; }
-#menu, #game, #shop, #friends { position:absolute; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-#menu { background:#3498db; color:white; }
-#game { display:none; background:#ecf0f1; overflow:hidden; position:relative;}
-#shop { display:none; background:#2ecc71; color:white; flex-direction:column; overflow-y:auto;}
-#friends { display:none; background:#9b59b6; color:white; flex-direction:column; overflow-y:auto;}
-button { padding:10px 20px; font-size:18px; margin:5px; cursor:pointer; }
-#player { position:absolute; width:50px; height:50px; bottom:50px; left:50px; transition:0.1s; z-index:10; border-radius:10px; background:red; }
-.obstacle, .coin, .boost { position:absolute; width:50px; height:50px; border-radius:10px; }
-.obstacle { background:green; }
-.coin { background:gold; }
-.boost { background:blue; }
-#scoreDisplay { position:absolute; top:10px; left:10px; font-size:20px; font-weight:bold; z-index:20; }
-.skinImage { width:50px; height:50px; border-radius:10px; }
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #222; color: white;
+  font-family: Arial, sans-serif;
+  touch-action: none;
+}
+#menu, #game, #shop, #friends {
+  position: absolute;
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#menu { background: #3498db; }
+#game { display: none; background: #ecf0f1; overflow: hidden; position: relative; }
+#shop { display: none; background: #2ecc71; overflow-y: auto; }
+#friends { display: none; background: #9b59b6; overflow-y: auto; }
+
+button {
+  padding: 20px 40px;
+  font-size: 26px;
+  margin: 10px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+input {
+  font-size: 22px;
+  padding: 15px;
+  margin: 8px;
+  border-radius: 8px;
+  border: none;
+}
+
+#player {
+  position: absolute;
+  width: 120px; height: 120px;
+  border-radius: 20px;
+  background: red;
+  z-index: 10;
+  transition: 0.1s;
+}
+.obstacle, .coin, .boost {
+  position: absolute;
+  width: 100px; height: 100px;
+  border-radius: 20px;
+}
+.obstacle { background: green; }
+.coin { background: gold; }
+.boost { background: blue; }
+
+#scoreDisplay {
+  position: absolute;
+  top: 20px; left: 20px;
+  font-size: 30px; font-weight: bold;
+  z-index: 20;
+  color: black;
+}
+
+.skinImage {
+  width: 100px; height: 100px;
+  border-radius: 15px;
+  margin: 10px;
+}
 </style>
 </head>
 <body>
 
 <!-- MENU -->
 <div id="menu">
-    <h1>Ultimate Subway Surfer Mobile</h1>
-    <input id="username" placeholder="Nom" /><br/>
-    <input id="password" type="password" placeholder="Mot de passe"/><br/>
-    <button id="loginBtn">Connexion</button>
-    <button id="registerBtn">Inscription</button><br/>
-    <button id="shopBtn">Boutique</button>
-    <button id="friendsBtn">Amis</button>
+  <h1 style="font-size:50px;">Subway Surfer Web</h1>
+  <input id="username" placeholder="Nom" /><br/>
+  <input id="password" type="password" placeholder="Mot de passe"/><br/>
+  <button id="loginBtn">Connexion</button>
+  <button id="registerBtn">Inscription</button><br/>
+  <button id="shopBtn">Boutique</button>
+  <button id="friendsBtn">Amis</button>
 </div>
 
 <!-- GAME -->
 <div id="game">
-    <div id="player"></div>
-    <div id="scoreDisplay">Score: 0 | Coins: 0</div>
-    <button id="backMenuGame" style="position:absolute;top:10px;right:10px;z-index:20;">Menu</button>
+  <div id="player"></div>
+  <div id="scoreDisplay">Score: 0 | Coins: 0</div>
+  <button id="backMenuGame" style="position:absolute;top:20px;right:20px;z-index:20;">Menu</button>
 </div>
 
 <!-- SHOP -->
 <div id="shop">
-    <h1>Boutique</h1>
-    <div id="shopItems"></div>
-    <button id="backMenuShop">Retour</button>
-    <div>Pièces: <span id="coinsDisplay">0</span></div>
+  <h1>Boutique</h1>
+  <div id="shopItems"></div>
+  <button id="backMenuShop">Retour</button>
+  <div style="font-size:24px;">Pièces: <span id="coinsDisplay">0</span></div>
 </div>
 
 <!-- FRIENDS -->
 <div id="friends">
-    <h1>Amis</h1>
-    <input id="friendName" placeholder="Nom de l'ami" />
-    <button id="addFriend">Ajouter</button>
-    <button id="backMenuFriends">Retour</button>
-    <div id="friendsList"></div>
+  <h1>Amis</h1>
+  <input id="friendName" placeholder="Nom de l'ami" />
+  <button id="addFriend">Ajouter</button>
+  <button id="backMenuFriends">Retour</button>
+  <div id="friendsList"></div>
 </div>
 
 <script>
@@ -63,166 +118,232 @@ const contentAPI = "https://sheetdb.io/api/v1/n05j8oqn2udaa";
 
 let user=null, score=0, coins=0;
 let player=document.getElementById('player');
-let playerPosX=50, playerPosY=window.innerHeight-100;
+let playerPosX=0, playerPosY=0;
 let obstacles=[], coinsOnMap=[], boostsOnMap=[], gameInterval;
 let availableSkins=[], currentSkin=null;
 
-// --- Menu navigation ---
-document.getElementById('loginBtn').onclick=login;
-document.getElementById('registerBtn').onclick=register;
-document.getElementById('shopBtn').onclick=()=>{loadShop();showDiv('shop');};
-document.getElementById('friendsBtn').onclick=()=>{loadFriends();showDiv('friends');};
-document.getElementById('backMenuGame').onclick=()=>stopGame();
-document.getElementById('backMenuShop').onclick=()=>showDiv('menu');
-document.getElementById('backMenuFriends').onclick=()=>showDiv('menu');
-document.getElementById('addFriend').onclick=addFriend;
+// --- Navigation ---
+function showDiv(id){
+  ["menu","game","shop","friends"].forEach(d=>{
+    document.getElementById(d).style.display=(d===id?"flex":"none");
+  });
+}
 
-function showDiv(id){['menu','game','shop','friends'].forEach(d=>document.getElementById(d).style.display=(d===id?'flex':'none'));}
+document.getElementById("loginBtn").onclick=login;
+document.getElementById("registerBtn").onclick=register;
+document.getElementById("shopBtn").onclick=()=>{loadShop();showDiv("shop");};
+document.getElementById("friendsBtn").onclick=()=>{loadFriends();showDiv("friends");};
+document.getElementById("backMenuGame").onclick=()=>stopGame();
+document.getElementById("backMenuShop").onclick=()=>showDiv("menu");
+document.getElementById("backMenuFriends").onclick=()=>showDiv("menu");
+document.getElementById("addFriend").onclick=addFriend;
 
 // --- Connexion ---
 async function login(){
-    let username=document.getElementById('username').value;
-    let password=document.getElementById('password').value;
-    let res=await fetch(userAPI);
-    let data=await res.json();
-    let u=data.find(u=>u.username===username && u.password===password);
-    if(u){user=u; coins=parseInt(u.coins)||0; score=parseInt(u.highscore)||0; 
-        if(!user.skin) user.skin=null; 
-        document.getElementById('coinsDisplay').innerText=coins; 
-        showDiv('game'); startGame();}
-    else alert("Utilisateur ou mot de passe incorrect");
+  let username=document.getElementById("username").value;
+  let password=document.getElementById("password").value;
+  let res=await fetch(userAPI);
+  let data=await res.json();
+  let u=data.find(u=>u.username===username && u.password===password);
+  if(u){
+    user=u;
+    coins=parseInt(u.coins)||0;
+    score=parseInt(u.highscore)||0;
+    document.getElementById("coinsDisplay").innerText=coins;
+    currentSkin=user.skin||null;
+    showDiv("game");
+    startGame();
+  } else alert("Utilisateur ou mot de passe incorrect");
 }
 
 // --- Inscription ---
 async function register(){
-    let username=document.getElementById('username').value;
-    let password=document.getElementById('password').value;
-    await fetch(userAPI,{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({data:{username,password,highscore:0,coins:0,friends:"",skin:null,ownedSkins:""}})});
-    alert("Inscription réussie ! Connectez-vous.");
+  let username=document.getElementById("username").value;
+  let password=document.getElementById("password").value;
+  await fetch(userAPI,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({data:{username,password,highscore:0,coins:0,friends:"",skin:null,ownedSkins:""}})
+  });
+  alert("Inscription réussie ! Connectez-vous.");
 }
 
 // --- Ajouter ami ---
 async function addFriend(){
-    let friendName=document.getElementById('friendName').value;
-    if(!user.friends) user.friends="";
-    user.friends+=user.friends?","+friendName:friendName;
-    await fetch(`${userAPI}/username/${user.username}`,{method:"PATCH",headers:{'Content-Type':'application/json'},body:JSON.stringify({data:{friends:user.friends}})});
-    loadFriends();
+  let friendName=document.getElementById("friendName").value;
+  if(!user.friends) user.friends="";
+  user.friends+=user.friends?","+friendName:friendName;
+  await fetch(`${userAPI}/username/${user.username}`,{
+    method:"PATCH",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({data:{friends:user.friends}})
+  });
+  loadFriends();
 }
 
 // --- Charger amis ---
 function loadFriends(){
-    let list=document.getElementById('friendsList');
-    list.innerHTML=user.friends?user.friends.split(',').map(f=>"<div>"+f+"</div>").join(''):"Pas d'amis";
+  let list=document.getElementById("friendsList");
+  list.innerHTML=user.friends?user.friends.split(",").map(f=>"<div>"+f+"</div>").join(""):"Pas d'amis";
 }
 
 // --- Charger boutique ---
 async function loadShop(){
-    let res=await fetch(contentAPI);
-    let items=await res.json();
-    availableSkins=items.filter(i=>i.type==='skin');
-    let container=document.getElementById('shopItems');
-    container.innerHTML="";
-    availableSkins.forEach((item,i)=>{
-        container.innerHTML+=`<div><img src="${item.image||''}" class="skinImage"> ${item.nom} - ${item.price||100} pièces <button onclick="buySkin(${i})">Acheter / Équiper</button></div>`;
-    });
+  let res=await fetch(contentAPI);
+  let items=await res.json();
+  availableSkins=items.filter(i=>i.type==="skin");
+  let container=document.getElementById("shopItems");
+  container.innerHTML="";
+  availableSkins.forEach((item,i)=>{
+    container.innerHTML+=`<div>
+      <img src="${item.image||""}" class="skinImage"> 
+      ${item.nom} - ${item.price||100} pièces 
+      <button onclick="buySkin(${i})">Acheter / Équiper</button>
+    </div>`;
+  });
 }
 
-// --- Acheter / équiper skin ---
+// --- Acheter skin ---
 async function buySkin(index){
-    let skin=availableSkins[index];
-    if(!user.ownedSkins) user.ownedSkins="";
-    let owned=user.ownedSkins.split(',').filter(Boolean);
-    if(!owned.includes(skin.nom)){
-        if(coins>=parseInt(skin.price||100)){
-            coins-=parseInt(skin.price||100);
-            owned.push(skin.nom);
-            user.ownedSkins=owned.join(',');
-            user.skin=skin.nom;
-            await fetch(`${userAPI}/username/${user.username}`,{method:"PATCH",headers:{'Content-Type':'application/json'},body:JSON.stringify({data:{coins:coins,ownedSkins:user.ownedSkins,skin:skin.nom}})});
-            alert("Achat réussi et skin équipé !");
-        } else { alert("Pas assez de pièces !"); return; }
-    } else {
-        user.skin=skin.nom;
-        await fetch(`${userAPI}/username/${user.username}`,{method:"PATCH",headers:{'Content-Type':'application/json'},body:JSON.stringify({data:{skin:skin.nom}})});
-        alert("Skin équipé !");
-    }
-    currentSkin=user.skin;
-    document.getElementById('coinsDisplay').innerText=coins;
-    updatePlayerSkin();
+  let skin=availableSkins[index];
+  if(!user.ownedSkins) user.ownedSkins="";
+  let owned=user.ownedSkins.split(",").filter(Boolean);
+  if(!owned.includes(skin.nom)){
+    if(coins>=parseInt(skin.price||100)){
+      coins-=parseInt(skin.price||100);
+      owned.push(skin.nom);
+      user.ownedSkins=owned.join(",");
+      user.skin=skin.nom;
+      await fetch(`${userAPI}/username/${user.username}`,{
+        method:"PATCH",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({data:{coins:coins,ownedSkins:user.ownedSkins,skin:skin.nom}})
+      });
+      alert("Achat réussi et skin équipé !");
+    } else { alert("Pas assez de pièces !"); return; }
+  } else {
+    user.skin=skin.nom;
+    await fetch(`${userAPI}/username/${user.username}`,{
+      method:"PATCH",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({data:{skin:skin.nom}})
+    });
+    alert("Skin équipé !");
+  }
+  currentSkin=user.skin;
+  document.getElementById("coinsDisplay").innerText=coins;
+  updatePlayerSkin();
 }
 
-// --- Mettre à jour le skin du joueur ---
+// --- Skin joueur ---
 function updatePlayerSkin(){
-    if(currentSkin){
-        let skinObj=availableSkins.find(s=>s.nom===currentSkin);
-        if(skinObj && skinObj.image) player.style.backgroundImage=`url(${skinObj.image})`;
-        else player.style.backgroundImage="";
-        player.style.backgroundSize="cover";
-    } else player.style.backgroundImage="";
+  if(currentSkin){
+    let skinObj=availableSkins.find(s=>s.nom===currentSkin);
+    if(skinObj && skinObj.image) player.style.backgroundImage=`url(${skinObj.image})`;
+    else player.style.backgroundImage="";
+    player.style.backgroundSize="cover";
+  } else player.style.backgroundImage="";
 }
 
 // --- Jeu ---
 async function startGame(){
-    score=0;
-    document.getElementById('scoreDisplay').innerText=`Score: ${score} | Coins: ${coins}`;
-    playerPosX=window.innerWidth/2-25;
-    playerPosY=window.innerHeight-100;
+  score=0;
+  document.getElementById("scoreDisplay").innerText=`Score: ${score} | Coins: ${coins}`;
+  playerPosX = window.innerWidth/2 - 60;
+  playerPosY = window.innerHeight - 200;
+  player.style.left=playerPosX+"px";
+  player.style.top=playerPosY+"px";
+  updatePlayerSkin();
+
+  let res=await fetch(contentAPI);
+  let content=await res.json();
+  obstacles=content.filter(c=>c.type==="obstacle");
+  coinsOnMap=content.filter(c=>c.type==="coin");
+  boostsOnMap=content.filter(c=>c.type==="boost");
+
+  // Swipe mobile
+  let startX,startY;
+  document.addEventListener("touchstart", e=>{
+    startX=e.touches[0].clientX;
+    startY=e.touches[0].clientY;
+  });
+  document.addEventListener("touchend", e=>{
+    let endX=e.changedTouches[0].clientX;
+    let endY=e.changedTouches[0].clientY;
+    let diffX=endX-startX; let diffY=endY-startY;
+    if(Math.abs(diffX)>Math.abs(diffY)){
+      if(diffX>40) playerPosX+=120;
+      else if(diffX<-40) playerPosX-=120;
+    } else {
+      if(diffY<-40) playerPosY-=120;
+      else if(diffY>40) playerPosY+=120;
+    }
+    if(playerPosX<0) playerPosX=0;
+    if(playerPosX>window.innerWidth-120) playerPosX=window.innerWidth-120;
+    if(playerPosY<0) playerPosY=0;
+    if(playerPosY>window.innerHeight-120) playerPosY=window.innerHeight-120;
     player.style.left=playerPosX+"px";
-    player.style.bottom=50+"px";
-    currentSkin=user.skin;
-    updatePlayerSkin();
+    player.style.top=playerPosY+"px";
+  });
 
-    let res=await fetch(contentAPI);
-    let content=await res.json();
-    obstacles=content.filter(c=>c.type==='obstacle');
-    coinsOnMap=content.filter(c=>c.type==='coin');
-    boostsOnMap=content.filter(c=>c.type==='boost');
-
-    // Swipe detection
-    let startX,startY;
-    document.addEventListener('touchstart', e=>{startX=e.touches[0].clientX; startY=e.touches[0].clientY;});
-    document.addEventListener('touchend', e=>{
-        let endX=e.changedTouches[0].clientX; let endY=e.changedTouches[0].clientY;
-        let diffX=endX-startX; let diffY=endY-startY;
-        if(Math.abs(diffX)>Math.abs(diffY)){
-            if(diffX>30) playerPosX+=50; else if(diffX<-30) playerPosX-=50;
-        } else { if(diffY<-30) playerPosY-=50; else if(diffY>30) playerPosY+=50; }
-        if(playerPosX<0) playerPosX=0; if(playerPosX>window.innerWidth-50) playerPosX=window.innerWidth-50;
-        if(playerPosY<0) playerPosY=0; if(playerPosY>window.innerHeight-50) playerPosY=window.innerHeight-50;
-        player.style.left=playerPosX+"px";
-        player.style.top=playerPosY+"px";
-    });
-
-    gameInterval=setInterval(gameLoop,50);
+  gameInterval=setInterval(gameLoop,50);
 }
 
-// --- Stop game ---
-function stopGame(){clearInterval(gameInterval); obstacles=[]; coinsOnMap=[]; boostsOnMap=[]; showDiv('menu');}
+// --- Stop ---
+function stopGame(){
+  clearInterval(gameInterval);
+  obstacles=[]; coinsOnMap=[]; boostsOnMap=[];
+  showDiv("menu");
+}
 
-// --- Main loop ---
+// --- Boucle ---
 function gameLoop(){
-    // Obstacles
-    obstacles.forEach(o=>{if(!o.element){let div=document.createElement('div'); div.className='obstacle'; div.style.left=Math.random()*(window.innerWidth-50)+"px"; div.style.top=-50+"px"; document.getElementById('game').appendChild(div); o.element=div;}
-        let top=parseInt(o.element.style.top); top+=5; if(top>window.innerHeight){top=-50;o.element.style.left=Math.random()*(window.innerWidth-50)+"px";} o.element.style.top=top+"px";
-        if(checkCollision(player,o.element)){alert("Game Over !"); stopGame();}});
+  moveEntities(obstacles, "obstacle", 8);
+  moveEntities(coinsOnMap, "coin", 8);
+  moveEntities(boostsOnMap, "boost", 10);
+}
 
-    // Coins
-    coinsOnMap.forEach(c=>{if(!c.element){let div=document.createElement('div'); div.className='coin'; div.style.left=Math.random()*(window.innerWidth-50)+"px"; div.style.top=-50+"px"; document.getElementById('game').appendChild(div); c.element=div;}
-        let top=parseInt(c.element.style.top); top+=5; if(top>window.innerHeight){top=-50;c.element.style.left=Math.random()*(window.innerWidth-50)+"px";} c.element.style.top=top+"px";
-        if(checkCollision(player,c.element)){coins+=10; score+=10; document.getElementById('scoreDisplay').innerText=`Score: ${score} | Coins: ${coins}`; c.element.style.top=-50+"px"; updateUser();}});
+// --- Déplacement ---
+function moveEntities(arr, className, speed){
+  arr.forEach(obj=>{
+    if(!obj.element){
+      let div=document.createElement("div");
+      div.className=className;
+      if(obj.image) div.style.backgroundImage=`url(${obj.image})`;
+      div.style.backgroundSize="cover";
+      div.style.left=Math.random()*(window.innerWidth-100)+"px";
+      div.style.top=-100+"px";
+      document.getElementById("game").appendChild(div);
+      obj.element=div;
+    }
+    let top=parseInt(obj.element.style.top);
+    top+=speed;
+    if(top>window.innerHeight){ top=-100; obj.element.style.left=Math.random()*(window.innerWidth-100)+"px"; }
+    obj.element.style.top=top+"px";
 
-    // Boosts
-    boostsOnMap.forEach(b=>{if(!b.element){let div=document.createElement('div'); div.className='boost'; div.style.left=Math.random()*(window.innerWidth-50)+"px"; div.style.top=-50+"px"; document.getElementById('game').appendChild(div); b.element=div;}
-        let top=parseInt(b.element.style.top); top+=7; if(top>window.innerHeight){top=-50;b.element.style.left=Math.random()*(window.innerWidth-50)+"px";} b.element.style.top=top+"px";
-        if(checkCollision(player,b.element)){score+=50; coins+=50; document.getElementById('scoreDisplay').innerText=`Score: ${score} | Coins: ${coins}`; b.element.style.top=-50+"px"; updateUser();}});
+    if(checkCollision(player,obj.element)){
+      if(className==="obstacle"){ alert("Game Over !"); stopGame(); }
+      if(className==="coin"){ coins+=10; score+=10; obj.element.style.top=-100+"px"; updateUser(); }
+      if(className==="boost"){ coins+=50; score+=50; obj.element.style.top=-100+"px"; updateUser(); }
+    }
+  });
 }
 
 // --- Collision ---
-function checkCollision(a,b){let r1=a.getBoundingClientRect(); let r2=b.getBoundingClientRect(); return !(r1.top>r2.bottom||r1.bottom<r2.top||r1.left>r2.right||r1.right<r2.left);}
+function checkCollision(a,b){
+  let r1=a.getBoundingClientRect();
+  let r2=b.getBoundingClientRect();
+  return !(r1.top>r2.bottom||r1.bottom<r2.top||r1.left>r2.right||r1.right<r2.left);
+}
 
-// --- Update user ---
-async function updateUser(){await fetch(`${userAPI}/username/${user.username}`,{method:"PATCH",headers:{'Content-Type':'application/json'},body:JSON.stringify({data:{coins:coins,highscore: score>parseInt(user.highscore||0)?score:user.highscore,skin:currentSkin}})});}
+// --- Update DB ---
+async function updateUser(){
+  await fetch(`${userAPI}/username/${user.username}`,{
+    method:"PATCH",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({data:{coins:coins,highscore: score>parseInt(user.highscore||0)?score:user.highscore,skin:currentSkin}})
+  });
+}
 </script>
 </body>
 </html>
