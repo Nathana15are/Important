@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Force Brute Ultra-Rapide Lisse</title>
+<title>Force Brute Hollywood</title>
 <style>
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:black;font-family:Consolas,monospace;}
 canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;}
@@ -37,7 +37,7 @@ button.ghost{background:transparent;border:1px solid rgba(0,255,0,0.3);}
 <body>
 <canvas id="matrix"></canvas>
 <div class="glass">
-  <h1>⚡ Test ton mots de passe ⚡</h1>
+  <h1>⚡ Force Brute Hollywood ⚡</h1>
   <label>Mot de passe</label>
   <input id="password" type="text" value="abc">
   <div class="controls">
@@ -66,36 +66,12 @@ startBtn=document.getElementById('startBtn'),
 stopBtn=document.getElementById('stopBtn'),
 beep=document.getElementById('beep');
 
-let simState={running:false,attempts:0n,prevAttempt:"",found:false,logs:[],timer:null,startTime:0,gen:null};
-const alphabet='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+[]{}|;:,.<>?';
+let simState={running:false,attempts:0n,found:false,gen:null,buffer:[],startTime:0};
+const alphabet='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 let fontSize=Math.min(20,width/50);
 let columns=Math.floor(width/fontSize);
 let drops=new Array(columns).fill(1);
-let lightning=[];
-
-let buffer=[]; // Buffer pour DOM
-function updateTestedCodes(){
-  if(buffer.length===0) return;
-  testedEl.innerHTML += buffer.join('<br>')+'<br>';
-  testedEl.scrollTop = testedEl.scrollHeight;
-  buffer.length=0;
-}
-
-function* enumerator(len,chars){
-  const idx=new Array(len).fill(0);
-  const base=chars.length;
-  if(base<=0)return;
-  while(true){
-    yield idx.map(i=>chars[i]).join('');
-    let pos=len-1;
-    while(pos>=0){
-      idx[pos]++;
-      if(idx[pos]<base)break;
-      idx[pos]=0;pos--;
-    }
-    if(pos<0) return;
-  }
-}
+let flash=0;
 
 function formatTime(seconds){
   const m=Math.floor(seconds/60);
@@ -103,42 +79,59 @@ function formatTime(seconds){
   return `${m}:${s.toString().padStart(2,'0')}`;
 }
 
+function* infiniteBruteForce(chars){
+  let len=1;
+  while(true){
+    const idx=new Array(len).fill(0);
+    while(true){
+      yield idx.map(i=>chars[i]).join('');
+      let pos=len-1;
+      while(pos>=0){
+        idx[pos]++;
+        if(idx[pos]<chars.length) break;
+        idx[pos]=0; pos--;
+      }
+      if(pos<0) break;
+    }
+    len++;
+  }
+}
+
+function updateTestedCodes(){
+  if(simState.buffer.length===0) return;
+  testedEl.innerHTML += simState.buffer.join('<br>')+'<br>';
+  testedEl.scrollTop = testedEl.scrollHeight;
+  simState.buffer=[];
+}
+
 function startSim(){
   const pwd=pwdEl.value||"";
   if(pwd.length===0){alert("Mot de passe vide");return;}
-  if(simState.running){return;}
+  if(simState.running) return;
 
   simState.running=true;
   simState.attempts=0n;
-  simState.prevAttempt="";
   simState.found=false;
   simState.startTime=Date.now();
-  simState.gen=null;
-  buffer=[];
+  simState.gen=infiniteBruteForce(alphabet);
+  simState.buffer=[];
   testedEl.innerHTML='';
-  startBtn.disabled=true; stopBtn.disabled=false;
+  startBtn.disabled=true;
+  stopBtn.disabled=false;
 
   simState.timer=setInterval(()=>{
     if(simState.found){clearInterval(simState.timer); startBtn.disabled=false; stopBtn.disabled=true; return;}
-
     const elapsed=Math.floor((Date.now()-simState.startTime)/1000);
     timerEl.textContent="Temps écoulé: "+formatTime(elapsed);
 
-    // Force brute rapide: plusieurs essais par tick
-    for(let i=0;i<200;i++){ // plus rapide
-      if(!simState.gen) simState.gen=enumerator(pwd.length,alphabet);
-      const {value,done}=simState.gen.next();
-      if(done){simState.running=false; break;}
-      simState.prevAttempt=value;
-      simState.logs.push(value);
+    for(let i=0;i<500;i++){
+      const {value}=simState.gen.next();
       simState.attempts+=1n;
-
-      buffer.push(value);
-
+      simState.buffer.push(value);
       if(value===pwd){
         simState.found=true;
         beep.currentTime=0; beep.play();
-        createLightningForAttempt(value);
+        flash=20; // déclenche effet Hollywood
         break;
       }
     }
@@ -147,10 +140,6 @@ function startSim(){
     barEl.style.width=(Number(simState.attempts)/100000*100).toFixed(2)+'%';
     summaryEl.textContent=`Essais: ${simState.attempts.toString()}${simState.found?" ✅ Trouvé!":""}`;
   },20);
-}
-
-function createLightningForAttempt(attempt){
-  lightning.push({time:0,chars:attempt});
 }
 
 startBtn.addEventListener('click',startSim);
@@ -163,32 +152,19 @@ stopBtn.addEventListener('click',()=>{
 });
 
 function drawMatrix(){
-  ctx.fillStyle="rgba(0,0,0,0.05)";
+  ctx.fillStyle=`rgba(0,${flash>0?255:0},0,0.05)`;
   ctx.fillRect(0,0,width,height);
-  ctx.font=fontSize+"px monospace";
 
+  ctx.font=fontSize+"px monospace";
   ctx.fillStyle="#0f0";
   for(let i=0;i<drops.length;i++){
-    if(i%2===0){
-      const text=alphabet[Math.floor(Math.random()*alphabet.length)];
-      ctx.fillText(text,i*fontSize,drops[i]*fontSize);
-      drops[i]++;
-      if(drops[i]*fontSize>height || Math.random()>0.97) drops[i]=0;
-    }
+    const text=alphabet[Math.floor(Math.random()*alphabet.length)];
+    ctx.fillText(text,i*fontSize,drops[i]*fontSize);
+    drops[i]++;
+    if(drops[i]*fontSize>height || Math.random()>0.97) drops[i]=0;
   }
 
-  lightning.forEach((l,i)=>{
-    ctx.fillStyle=`rgba(0,255,255,${1-l.time/20})`;
-    ctx.shadowColor='#0ff';
-    ctx.shadowBlur=10;
-    l.chars.split('').forEach((ch,j)=>{
-      const x=(j+5)*fontSize;
-      const y=(l.time*fontSize*0.5)%height;
-      ctx.fillText(ch,x,y);
-    });
-    l.time++;
-    if(l.time>20) lightning.splice(i,1);
-  });
+  if(flash>0) flash--; // décrémente l'effet Hollywood
 
   requestAnimationFrame(drawMatrix);
 }
