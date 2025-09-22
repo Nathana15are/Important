@@ -3,347 +3,153 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Subway Surfer Web Mobile</title>
+<title>Hollywood Extreme Hacker Matrix Simulator</title>
 <style>
-html, body {
-  margin: 0; padding: 0;
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: #222; color: white;
-  font-family: Arial, sans-serif;
-  touch-action: none;
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:black;font-family:Consolas,monospace;}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;}
+.glass{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  backdrop-filter: blur(16px) saturate(200%);
+  background: rgba(0,0,0,0.25);
+  border-radius:20px;
+  border:1px solid rgba(0,255,0,0.3);
+  padding:30px 40px;
+  width:90%; max-width:800px;
+  text-align:center;
+  color:#0f0;
+  z-index:1;
+  box-shadow:0 0 25px rgba(0,255,0,0.7);
 }
-#menu, #game, #shop, #friends {
-  position: absolute;
-  width: 100%; height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-#menu { background: #3498db; }
-#game { display: none; background: #ecf0f1; overflow: hidden; position: relative; }
-#shop { display: none; background: #2ecc71; overflow-y: auto; }
-#friends { display: none; background: #9b59b6; overflow-y: auto; }
-
-button {
-  padding: 20px 40px;
-  font-size: 26px;
-  margin: 10px;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-}
-
-input {
-  font-size: 22px;
-  padding: 15px;
-  margin: 8px;
-  border-radius: 8px;
-  border: none;
-}
-
-#player {
-  position: absolute;
-  width: 120px; height: 120px;
-  border-radius: 20px;
-  background: red;
-  z-index: 10;
-  transition: 0.1s;
-}
-.obstacle, .coin, .boost {
-  position: absolute;
-  width: 100px; height: 100px;
-  border-radius: 20px;
-}
-.obstacle { background: green; }
-.coin { background: gold; }
-.boost { background: blue; }
-
-#scoreDisplay {
-  position: absolute;
-  top: 20px; left: 20px;
-  font-size: 30px; font-weight: bold;
-  z-index: 20;
-  color: black;
-}
-
-.skinImage {
-  width: 100px; height: 100px;
-  border-radius: 15px;
-  margin: 10px;
-}
+h1{margin:0;color:#0f0;text-shadow:0 0 10px #0f0,0 0 20px #00ff00;}
+label{display:block;margin-top:10px;font-size:14px;color:#88ff88;}
+input,select{width:100%;padding:10px;margin-top:6px;border-radius:10px;border:none;background:rgba(0,255,0,0.08);color:#0f0;font-size:16px;}
+button{padding:10px 16px;margin:6px;border:none;border-radius:12px;background:linear-gradient(45deg,#0f0,#00aa00);color:#001f20;font-weight:700;cursor:pointer;transition:.2s;}
+button:hover{filter:brightness(1.3);}
+button.ghost{background:transparent;border:1px solid rgba(0,255,0,0.3);}
+.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px;}
+.progress{height:18px;background:rgba(0,255,0,0.1);border-radius:999px;margin-top:12px;overflow:hidden;}
+.progress>div{height:100%;width:0;background:linear-gradient(90deg,#0f0,#00ff00);box-shadow:0 0 20px #0f0;transition:width .05s linear;}
+#summary{font-size:13px;margin-top:8px;color:#88ff88;}
+@keyframes flash{0%,100%{text-shadow:0 0 10px #0f0,0 0 20px #00ff00;}50%{text-shadow:0 0 40px #0ff,0 0 80px #0ff;}}
+.found-letter{animation:flash 0.2s ease-in-out;}
 </style>
 </head>
 <body>
-
-<!-- MENU -->
-<div id="menu">
-  <h1 style="font-size:50px;">Subway Surfer Web</h1>
-  <input id="username" placeholder="Nom" /><br/>
-  <input id="password" type="password" placeholder="Mot de passe"/><br/>
-  <button id="loginBtn">Connexion</button>
-  <button id="registerBtn">Inscription</button><br/>
-  <button id="shopBtn">Boutique</button>
-  <button id="friendsBtn">Amis</button>
+<canvas id="matrix"></canvas>
+<div class="glass">
+  <h1>⚡ Hollywood Extreme Hacker Matrix Simulator ⚡</h1>
+  <label>Mot de passe</label>
+  <input id="password" type="text" value="abc">
+  <label>Tentatives/sec</label>
+  <input id="rate" type="number" min="1" value="200">
+  <div class="controls">
+    <button id="startBtn">Lancer</button>
+    <button id="stopBtn" class="ghost" disabled>Arrêter</button>
+  </div>
+  <div class="progress"><div id="bar"></div></div>
+  <div id="summary">Clique sur Lancer pour commencer</div>
 </div>
-
-<!-- GAME -->
-<div id="game">
-  <div id="player"></div>
-  <div id="scoreDisplay">Score: 0 | Coins: 0</div>
-  <button id="backMenuGame" style="position:absolute;top:20px;right:20px;z-index:20;">Menu</button>
-</div>
-
-<!-- SHOP -->
-<div id="shop">
-  <h1>Boutique</h1>
-  <div id="shopItems"></div>
-  <button id="backMenuShop">Retour</button>
-  <div style="font-size:24px;">Pièces: <span id="coinsDisplay">0</span></div>
-</div>
-
-<!-- FRIENDS -->
-<div id="friends">
-  <h1>Amis</h1>
-  <input id="friendName" placeholder="Nom de l'ami" />
-  <button id="addFriend">Ajouter</button>
-  <button id="backMenuFriends">Retour</button>
-  <div id="friendsList"></div>
-</div>
+<audio id="beep" src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="></audio>
 
 <script>
-const userAPI = "https://sheetdb.io/api/v1/rbe4ac1wg0g2n";
-const contentAPI = "https://sheetdb.io/api/v1/n05j8oqn2udaa";
+const canvas=document.getElementById('matrix');
+const ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
 
-let user=null, score=0, coins=0;
-let player=document.getElementById('player');
-let playerPosX=0, playerPosY=0;
-let obstacles=[], coinsOnMap=[], boostsOnMap=[], gameInterval;
-let availableSkins=[], currentSkin=null;
+const pwdEl=document.getElementById('password'),rateEl=document.getElementById('rate'),
+barEl=document.getElementById('bar'),summaryEl=document.getElementById('summary'),
+startBtn=document.getElementById('startBtn'),stopBtn=document.getElementById('stopBtn'),
+beep=document.getElementById('beep');
 
-// --- Navigation ---
-function showDiv(id){
-  ["menu","game","shop","friends"].forEach(d=>{
-    document.getElementById(d).style.display=(d===id?"flex":"none");
+let simState={running:false,attempts:0n,prevAttempt:"",found:false,logs:[],timer:null};
+
+const alphabet='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+[]{}|;:,.<>?';
+let fontSize=20;
+let columns=canvas.width/fontSize;
+let drops=new Array(Math.floor(columns)).fill(1);
+
+function* enumerator(len,chars){const idx=new Array(len).fill(0);const base=chars.length;if(base<=0)return;
+while(true){yield idx.map(i=>chars[i]).join('');let pos=len-1;while(pos>=0){idx[pos]++;if(idx[pos]<base)break;idx[pos]=0;pos--}if(pos<0)return;}}
+
+function startSim(){
+  if(simState.running)return;
+  const pwd=pwdEl.value||"",len=pwd.length,rate=Math.max(1,Number(rateEl.value)||1);
+  if(len===0){alert("Mot de passe vide");return;}
+  const alpha=alphabet;
+  simState.gen=enumerator(len,alpha);
+  simState.running=true;
+  simState.attempts=0n;
+  simState.prevAttempt="";
+  simState.found=false;
+  startBtn.disabled=true; stopBtn.disabled=false;
+  
+  simState.timer=setInterval(()=>{
+    let chunk=Math.max(1,Math.floor(rate/20));
+    for(let i=0;i<chunk;i++){
+      const {value,done}=simState.gen.next(); if(done){simState.running=false;break;}
+      simState.attempts+=1n; simState.prevAttempt=value; simState.logs.push(value);
+      if(value===pwd){simState.found=true;simState.running=false;
+        beep.currentTime=0;beep.play();
+        flashAttempt(value);
+        break;
+      }
+    }
+    barEl.style.width=(Number(simState.attempts)/Math.pow(alphabet.length,len)*100).toFixed(2)+'%';
+    summaryEl.textContent=`Essais: ${simState.attempts.toString()}${simState.found?" ✅ Trouvé!":""}`;
+    if(!simState.running) clearInterval(simState.timer),startBtn.disabled=false,stopBtn.disabled=true;
+  },50);
+}
+
+function flashAttempt(attempt){
+  summaryEl.innerHTML = '';
+  attempt.split('').forEach(ch=>{
+    const span=document.createElement('span');
+    span.textContent=ch;
+    span.classList.add('found-letter');
+    summaryEl.appendChild(span);
+    createLightning(span);
   });
 }
 
-document.getElementById("loginBtn").onclick=login;
-document.getElementById("registerBtn").onclick=register;
-document.getElementById("shopBtn").onclick=()=>{loadShop();showDiv("shop");};
-document.getElementById("friendsBtn").onclick=()=>{loadFriends();showDiv("friends");};
-document.getElementById("backMenuGame").onclick=()=>stopGame();
-document.getElementById("backMenuShop").onclick=()=>showDiv("menu");
-document.getElementById("backMenuFriends").onclick=()=>showDiv("menu");
-document.getElementById("addFriend").onclick=addFriend;
-
-// --- Connexion ---
-async function login(){
-  let username=document.getElementById("username").value;
-  let password=document.getElementById("password").value;
-  let res=await fetch(userAPI);
-  let data=await res.json();
-  let u=data.find(u=>u.username===username && u.password===password);
-  if(u){
-    user=u;
-    coins=parseInt(u.coins)||0;
-    score=parseInt(u.highscore)||0;
-    document.getElementById("coinsDisplay").innerText=coins;
-    currentSkin=user.skin||null;
-    showDiv("game");
-    startGame();
-  } else alert("Utilisateur ou mot de passe incorrect");
+function createLightning(el){
+  const lightning=document.createElement('span');
+  lightning.textContent='⚡';
+  lightning.style.position='absolute';
+  lightning.style.color='#0ff';
+  lightning.style.fontSize='20px';
+  const rect=el.getBoundingClientRect();
+  lightning.style.left=(rect.left+Math.random()*rect.width)+'px';
+  lightning.style.top=(rect.top+Math.random()*rect.height)+'px';
+  lightning.style.zIndex='10';
+  document.body.appendChild(lightning);
+  setTimeout(()=>lightning.remove(),300);
 }
 
-// --- Inscription ---
-async function register(){
-  let username=document.getElementById("username").value;
-  let password=document.getElementById("password").value;
-  await fetch(userAPI,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({data:{username,password,highscore:0,coins:0,friends:"",skin:null,ownedSkins:""}})
-  });
-  alert("Inscription réussie ! Connectez-vous.");
-}
+startBtn.addEventListener('click',startSim);
+stopBtn.addEventListener('click',()=>{if(simState.timer)clearInterval(simState.timer);simState.running=false;startBtn.disabled=false;stopBtn.disabled=true;summaryEl.textContent+=" ⏹ Arrêt manuel";});
 
-// --- Ajouter ami ---
-async function addFriend(){
-  let friendName=document.getElementById("friendName").value;
-  if(!user.friends) user.friends="";
-  user.friends+=user.friends?","+friendName:friendName;
-  await fetch(`${userAPI}/username/${user.username}`,{
-    method:"PATCH",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({data:{friends:user.friends}})
-  });
-  loadFriends();
-}
-
-// --- Charger amis ---
-function loadFriends(){
-  let list=document.getElementById("friendsList");
-  list.innerHTML=user.friends?user.friends.split(",").map(f=>"<div>"+f+"</div>").join(""):"Pas d'amis";
-}
-
-// --- Charger boutique ---
-async function loadShop(){
-  let res=await fetch(contentAPI);
-  let items=await res.json();
-  availableSkins=items.filter(i=>i.type==="skin");
-  let container=document.getElementById("shopItems");
-  container.innerHTML="";
-  availableSkins.forEach((item,i)=>{
-    container.innerHTML+=`<div>
-      <img src="${item.image||""}" class="skinImage"> 
-      ${item.nom} - ${item.price||100} pièces 
-      <button onclick="buySkin(${i})">Acheter / Équiper</button>
-    </div>`;
-  });
-}
-
-// --- Acheter skin ---
-async function buySkin(index){
-  let skin=availableSkins[index];
-  if(!user.ownedSkins) user.ownedSkins="";
-  let owned=user.ownedSkins.split(",").filter(Boolean);
-  if(!owned.includes(skin.nom)){
-    if(coins>=parseInt(skin.price||100)){
-      coins-=parseInt(skin.price||100);
-      owned.push(skin.nom);
-      user.ownedSkins=owned.join(",");
-      user.skin=skin.nom;
-      await fetch(`${userAPI}/username/${user.username}`,{
-        method:"PATCH",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({data:{coins:coins,ownedSkins:user.ownedSkins,skin:skin.nom}})
-      });
-      alert("Achat réussi et skin équipé !");
-    } else { alert("Pas assez de pièces !"); return; }
-  } else {
-    user.skin=skin.nom;
-    await fetch(`${userAPI}/username/${user.username}`,{
-      method:"PATCH",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({data:{skin:skin.nom}})
-    });
-    alert("Skin équipé !");
+function drawMatrix(){
+  ctx.fillStyle="rgba(0,0,0,0.05)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#0f0";
+  ctx.font=fontSize+"px monospace";
+  for(let i=0;i<drops.length;i++){
+    const text=alphabet[Math.floor(Math.random()*alphabet.length)];
+    ctx.fillText(text,i*fontSize,drops[i]*fontSize);
+    drops[i]++;
+    if(drops[i]*fontSize>canvas.height || Math.random()>0.95) drops[i]=0;
   }
-  currentSkin=user.skin;
-  document.getElementById("coinsDisplay").innerText=coins;
-  updatePlayerSkin();
+  requestAnimationFrame(drawMatrix);
 }
+drawMatrix();
 
-// --- Skin joueur ---
-function updatePlayerSkin(){
-  if(currentSkin){
-    let skinObj=availableSkins.find(s=>s.nom===currentSkin);
-    if(skinObj && skinObj.image) player.style.backgroundImage=`url(${skinObj.image})`;
-    else player.style.backgroundImage="";
-    player.style.backgroundSize="cover";
-  } else player.style.backgroundImage="";
-}
-
-// --- Jeu ---
-async function startGame(){
-  score=0;
-  document.getElementById("scoreDisplay").innerText=`Score: ${score} | Coins: ${coins}`;
-  playerPosX = window.innerWidth/2 - 60;
-  playerPosY = window.innerHeight - 200;
-  player.style.left=playerPosX+"px";
-  player.style.top=playerPosY+"px";
-  updatePlayerSkin();
-
-  let res=await fetch(contentAPI);
-  let content=await res.json();
-  obstacles=content.filter(c=>c.type==="obstacle");
-  coinsOnMap=content.filter(c=>c.type==="coin");
-  boostsOnMap=content.filter(c=>c.type==="boost");
-
-  // Swipe mobile
-  let startX,startY;
-  document.addEventListener("touchstart", e=>{
-    startX=e.touches[0].clientX;
-    startY=e.touches[0].clientY;
-  });
-  document.addEventListener("touchend", e=>{
-    let endX=e.changedTouches[0].clientX;
-    let endY=e.changedTouches[0].clientY;
-    let diffX=endX-startX; let diffY=endY-startY;
-    if(Math.abs(diffX)>Math.abs(diffY)){
-      if(diffX>40) playerPosX+=120;
-      else if(diffX<-40) playerPosX-=120;
-    } else {
-      if(diffY<-40) playerPosY-=120;
-      else if(diffY>40) playerPosY+=120;
-    }
-    if(playerPosX<0) playerPosX=0;
-    if(playerPosX>window.innerWidth-120) playerPosX=window.innerWidth-120;
-    if(playerPosY<0) playerPosY=0;
-    if(playerPosY>window.innerHeight-120) playerPosY=window.innerHeight-120;
-    player.style.left=playerPosX+"px";
-    player.style.top=playerPosY+"px";
-  });
-
-  gameInterval=setInterval(gameLoop,50);
-}
-
-// --- Stop ---
-function stopGame(){
-  clearInterval(gameInterval);
-  obstacles=[]; coinsOnMap=[]; boostsOnMap=[];
-  showDiv("menu");
-}
-
-// --- Boucle ---
-function gameLoop(){
-  moveEntities(obstacles, "obstacle", 8);
-  moveEntities(coinsOnMap, "coin", 8);
-  moveEntities(boostsOnMap, "boost", 10);
-}
-
-// --- Déplacement ---
-function moveEntities(arr, className, speed){
-  arr.forEach(obj=>{
-    if(!obj.element){
-      let div=document.createElement("div");
-      div.className=className;
-      if(obj.image) div.style.backgroundImage=`url(${obj.image})`;
-      div.style.backgroundSize="cover";
-      div.style.left=Math.random()*(window.innerWidth-100)+"px";
-      div.style.top=-100+"px";
-      document.getElementById("game").appendChild(div);
-      obj.element=div;
-    }
-    let top=parseInt(obj.element.style.top);
-    top+=speed;
-    if(top>window.innerHeight){ top=-100; obj.element.style.left=Math.random()*(window.innerWidth-100)+"px"; }
-    obj.element.style.top=top+"px";
-
-    if(checkCollision(player,obj.element)){
-      if(className==="obstacle"){ alert("Game Over !"); stopGame(); }
-      if(className==="coin"){ coins+=10; score+=10; obj.element.style.top=-100+"px"; updateUser(); }
-      if(className==="boost"){ coins+=50; score+=50; obj.element.style.top=-100+"px"; updateUser(); }
-    }
-  });
-}
-
-// --- Collision ---
-function checkCollision(a,b){
-  let r1=a.getBoundingClientRect();
-  let r2=b.getBoundingClientRect();
-  return !(r1.top>r2.bottom||r1.bottom<r2.top||r1.left>r2.right||r1.right<r2.left);
-}
-
-// --- Update DB ---
-async function updateUser(){
-  await fetch(`${userAPI}/username/${user.username}`,{
-    method:"PATCH",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({data:{coins:coins,highscore: score>parseInt(user.highscore||0)?score:user.highscore,skin:currentSkin}})
-  });
-}
+window.addEventListener('resize',()=>{
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  columns=canvas.width/fontSize;
+  drops=new Array(Math.floor(columns)).fill(1);
+});
 </script>
 </body>
 </html>
